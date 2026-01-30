@@ -1,0 +1,1633 @@
+<!-- chat.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>随心 - 房间</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* 弹出文字样式 */
+        .pop-text {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) scale(0.6);
+            font-size: 100px;
+            font-weight: bold;
+            color: #FF6B6B;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 9999;
+            font-family: "STXingkai", "Xingkai SC", "PingFang SC",
+            "Kaiti SC",
+            "KaiTi",
+            "STKaiti",
+            "楷体",
+            serif;
+            animation: popScale 2s ease-out forwards;
+        }
+
+        /* 缩放动画 */
+        @keyframes popScale {
+            0% {
+                transform: translate(-50%, -50%) scale(0.6);
+                opacity: 0;
+            }
+            40% {
+                transform: translate(-50%, -50%) scale(1.25);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0;
+            }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            height: 100vh;
+            background: linear-gradient(135deg, #2c3e50 0%, #4a6491 100%);
+            padding: 0;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: white;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #4a6491 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .room-info {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .room-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .room-id {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-top: 3px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .player-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .user-info:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .user-color {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+
+        #usernameDisplay {
+            font-weight: 600;
+            font-size: 1rem;
+            white-space: nowrap;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        /* 左侧游戏区域 (2/3) */
+        .left-game {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-right: 1px solid #d1d8e0;
+            min-width: 0;
+            overflow-y: auto;
+        }
+
+        .left-header {
+            padding: 12px 20px;
+            border-bottom: 1px solid #d1d8e0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-weight: 600;
+            color: white;
+            font-size: 0.95rem;
+            flex-shrink: 0;
+            /* 核心新增：横向排列 + 垂直居中，Flex默认就是横向row */
+            display: flex;
+            align-items: center;
+            /* 可选：控制内部元素间距，根据需求加，比如间距8px */
+            gap: 8px;
+            /* 可选：内部元素靠左/居中/靠右，默认靠左，按需取消注释 */
+            /* justify-content: center; 居中 */
+            /* justify-content: flex-end; 靠右 */
+        }
+
+        .game-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        /* 对手牌区 */
+        .opponent-area {
+            flex: 2;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .area-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .opponent-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            flex: 1;
+            min-height: 100px;
+        }
+
+        /* 自己手牌区 */
+        .my-area {
+            flex: 2;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            border: 2px solid #667eea;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .my-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            flex: 1;
+            min-height: 120px;
+        }
+
+        /* 麻将牌主样式：紫色渐变+保留原有交互布局 */
+        .hand-card {
+            width: 70px;
+            height: 100px;
+            /* 核心修改1：紫色渐变背景（浅紫→深紫，135度和原光影一致，白字对比度拉满） */
+            background: linear-gradient(135deg, #06D6A0 0%, #118AB2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            /* 消除父容器可能的内边距，确保子元素满格 */
+            padding: 0;
+            margin: 0;
+        }
+
+        .hand-card1 {
+            width: 70px;
+            height: 100px;
+            /* 核心修改1：紫色渐变背景（浅紫→深紫，135度和原光影一致，白字对比度拉满） */
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FF8C00 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            /* 消除父容器可能的内边距，确保子元素满格 */
+            padding: 0;
+            margin: 0;
+        }
+
+        .hand-card2 {
+            width: 70px;
+            height: 100px;
+            /* 核心修改1：紫色渐变背景（浅紫→深紫，135度和原光影一致，白字对比度拉满） */
+            background: linear-gradient(135deg, #6A1B9A 0%, #3A0F66 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            /* 消除父容器可能的内边距，确保子元素满格 */
+            padding: 0;
+            margin: 0;
+        }
+
+        /* 麻将字符容器：核心实现单个字符占满全格（必须配合这个类！） */
+        .hand-card-number {
+            /* 核心：撑满父容器.hand-card的100%宽高 */
+            width: 100%;
+            height: 100%;
+            /* 字符绝对居中，消除上下左右空隙 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* 核心2：精准字体大小，70×100牌面满格不溢出的黄金值 */
+            font-size: 70px;
+            /* 消除字符默认行高空隙，让字符完全贴紧上下 */
+            line-height: 1;
+            /* 可选：加文字阴影，紫色背景上字符更立体 */
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .hand-card-number1 {
+            /* 核心：撑满父容器.hand-card的100%宽高 */
+            width: 100%;
+            height: 100%;
+            /* 字符绝对居中，消除上下左右空隙 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* 核心2：精准字体大小，70×100牌面满格不溢出的黄金值 */
+            font-size: 40px;
+            /* 消除字符默认行高空隙，让字符完全贴紧上下 */
+            line-height: 1;
+            /* 可选：加文字阴影，紫色背景上字符更立体 */
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .hand-card.hand-card1.hand-card2:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .hand-card-value {
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        /* 右侧聊天消息区 (1/3) */
+        .right-chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f8f9fa;
+            min-width: 0;
+        }
+
+        .right-header {
+            padding: 12px 20px;
+            border-bottom: 1px solid #e9ecef;
+            background: #e9ecef;
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.95rem;
+            flex-shrink: 0;
+        }
+
+        #messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        /* 手机竖屏布局 */
+        @media (max-width: 768px) and (orientation: portrait) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .left-game,
+            .right-chat {
+                flex: none;
+                height: 50%;
+            }
+
+            .left-game {
+                border-right: none;
+                border-bottom: 1px solid #d1d8e0;
+            }
+
+            .header {
+                padding: 12px 15px;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .room-title {
+                font-size: 1.2rem;
+            }
+
+            .user-info {
+                padding: 6px 12px;
+            }
+        }
+
+        /* 平板和桌面布局 */
+        @media (min-width: 769px) and (orientation: landscape) {
+            .main-content {
+                flex-direction: row;
+            }
+
+            .left-game {
+                flex: 2;
+            }
+
+            .right-chat {
+                flex: 1;
+            }
+        }
+
+        /* 美化滚动条 */
+        #messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        #messages::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        #messages::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            word-wrap: break-word;
+            animation: messageAppear 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes messageAppear {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 聊天消息样式 */
+        .message.chat {
+            max-width: 85%;
+        }
+
+        .message.own {
+            margin-left: auto;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.other {
+            background: white;
+            color: #1c1e21;
+            border-left: 4px solid;
+        }
+
+        .message.system-game {
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #bbdefb;
+            font-size: 0.9rem;
+            text-align: center;
+            margin: 10px 0;
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+
+        .message.history-info {
+            background: #f3e5f5;
+            color: #7b1fa2;
+            border: 1px dashed #e1bee7;
+            font-size: 0.8rem;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .message.error {
+            background: #fff5f5;
+            color: #c53030;
+            border: 1px solid #fed7d7;
+            font-size: 0.85rem;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+            font-size: 0.75rem;
+        }
+
+        .message-username {
+            font-weight: 600;
+            margin-right: 6px;
+        }
+
+        .message-time {
+            opacity: 0.7;
+            font-size: 0.7rem;
+        }
+
+        .message-content {
+            line-height: 1.4;
+            font-size: 0.9rem;
+        }
+
+        .input-area {
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        #messageInput {
+            flex: 1;
+            padding: 12px 18px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        #messageInput:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 1.3rem;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            margin-bottom: 20px;
+        }
+
+        .modal input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+            padding: 10px;
+        }
+
+        /* 用户列表样式 */
+        .user-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .user-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            background: white;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            border: 1px solid #e9ecef;
+        }
+
+        .user-color-small {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        /* 游戏状态样式 */
+        .game-status {
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            border: 1px solid #e9ecef;
+        }
+
+        .current-turn {
+            font-weight: bold;
+            color: #667eea;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.7;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0.7;
+            }
+        }
+
+        /* 数字卡片样式 */
+        .card-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .card-value {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .player-badge1 {
+            /* 原有样式 */
+            background: linear-gradient(135deg, #ff6b81 0%, #ff4757 100%);
+            padding: 5px 40px; /* 左右基础间距30px */
+            border-radius: 20px;
+            font-size: 1rem;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            /* 新增 */
+            cursor: pointer; /* 鼠标移上去变手型，提示可点击 */
+            transition: background 0.2s; /* 背景过渡，更丝滑 */
+        }
+
+        /* 鼠标悬停效果 */
+        .player-badge1:hover {
+            background: rgba(255, 255, 255, 0.3); /* 悬停变亮一点 */
+        }
+    </style>
+</head>
+<body>
+<div class="pop-text"></div>
+<div class="container">
+    <div class="header">
+        <div class="header-left">
+            <button class="back-button" onclick="goBack()">⬅</button>
+            <div class="room-info">
+                <div class="room-title" id="roomTitle">双麻</div>
+                <div class="room-id">
+                    <span id="roomId">#000</span>
+                    <span class="player-badge">👥 <span id="onlineCount">0</span>/2</span>
+                    <div class="user-list" id="userListContainer"></div>
+
+                </div>
+            </div>
+        </div>
+        <div class="user-info" onclick="showRenameModal()">
+            <div id="userColor" class="user-color"></div>
+            <span id="usernameDisplay">用户</span>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <!-- 左侧游戏区域 (2/3) -->
+        <div class="left-game">
+            <div class="pop-text"></div>
+            <div class="left-header">
+                <span>麻将</span>
+                <div class="player-badge1" id="prepareBadge">
+                    <span>点击准备</span>
+                </div>
+            </div>
+            <div class="game-area">
+                <!-- 对手牌区 -->
+                <div class="opponent-area">
+                    <div class="area-title">
+                        <span>对手手牌区</span>
+                    </div>
+                    <div class="opponent-cards" id="opponentCards">
+                    </div>
+                </div>
+
+                <!-- 弃牌区 -->
+                <div class="my-area">
+                    <div class="area-title">
+                        <span>弃牌区</span>
+                    </div>
+                    <div class="my-cards" id="discardPile">
+                    </div>
+                </div>
+
+                <!-- 自己手牌区 -->
+                <div class="my-area">
+                    <div class="area-title">
+                        <span>我的手牌区</span>
+                    </div>
+                    <div class="my-cards" id="myCards">
+                        <!-- 手牌将在这里动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧聊天消息区 (1/3) -->
+        <div class="right-chat">
+            <div class="right-header">
+                <span>聊天</span>
+            </div>
+            <div id="messages"></div>
+        </div>
+    </div>
+
+    <!-- 输入区 -->
+    <div class="input-area">
+        <input type="text" id="messageInput" placeholder="输入聊天消息..." autocomplete="off">
+        <button id="sendButton" onclick="sendMessage()">发送</button>
+    </div>
+</div>
+
+<!-- 修改用户名模态框 -->
+<div id="renameModal" class="modal">
+    <div class="modal-content">
+        <h2>修改玩家名称</h2>
+        <input type="text" id="renameInput" placeholder="输入新玩家名称" maxlength="20">
+        <div class="modal-buttons">
+            <button onclick="renameUser()">确认</button>
+            <button onclick="hideRenameModal()">取消</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const discardPileContainer = document.getElementById('discardPile');
+    const readyBtn = document.getElementById('prepareBadge');
+    const popText = document.querySelector('.pop-text');
+    // 绑定点击事件
+    readyBtn.addEventListener('click', function () {
+        this.disabled = true;
+        if (isNewGame === true) {
+            isNewGame = false;
+            gameState.isNew = false;
+        }
+        updateHandCards()
+    });
+
+    let ws = null;
+    let currentUser = {
+        id: '',
+        username: '',
+        color: '',
+    };
+    let playerNumber = 0;
+    let roomID = '';
+    let roomName = '';
+    let userList = [];
+    let hasReceivedHistory = false;
+    let gameState = {
+        discardPile: [],     // 弃牌堆
+    };
+    let isNewGame = true;
+    const mahjongMap = {
+        // 风牌 1-4：东、南、西、北
+        31: '🀀', 33: '🀁', 35: '🀂', 37: '🀃',
+        // 箭牌 5-7：红中、发财、白板
+        39: '🀄', 41: '🀅', 43: '🀆',
+        // 万子 8-16：一万~九万
+        1: '🀇', 2: '🀈', 3: '🀉', 4: '🀊', 5: '🀋', 6: '🀌', 7: '🀍', 8: '🀎', 9: '🀏',
+        // 特殊牌 43：百搭，0：牌背（核心：visible=false时显示）
+        0: '🀫'
+    };
+    // 页面加载时初始化
+    window.onload = function () {
+        loadUserInfo();
+        loadRoomInfo();
+        connect();
+        setupEventListeners();
+    };
+
+    function setupEventListeners() {
+        // 按Enter键发送消息
+        document.getElementById('messageInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // 按Esc键关闭模态框
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                hideRenameModal();
+            }
+        });
+
+        // 点击模态框外部关闭
+        window.onclick = function (event) {
+            const modal = document.getElementById('renameModal');
+            if (event.target === modal) {
+                hideRenameModal();
+            }
+        };
+
+        // 处理窗口大小变化
+        window.addEventListener('resize', handleResize);
+        handleResize();
+    }
+
+    function handleResize() {
+        const mainContent = document.querySelector('.main-content');
+        const isPortrait = window.innerWidth <= 768;
+
+        if (isPortrait) {
+            mainContent.style.flexDirection = 'column';
+        } else {
+            mainContent.style.flexDirection = 'row';
+        }
+    }
+
+    function goBack() {
+        if (confirm('确定要离开游戏房间吗？')) {
+            window.location.href = '/';
+        }
+    }
+
+    function loadUserInfo() {
+        // 从URL参数获取用户名，否则从localStorage读取
+        const urlParams = new URLSearchParams(window.location.search);
+        let username = urlParams.get('username');
+
+        if (!username) {
+            username = localStorage.getItem('chat_username');
+            if (!username) {
+                username = generateRandomName();
+                localStorage.setItem('chat_username', username);
+            }
+        } else {
+            // 保存URL中的用户名到localStorage
+            localStorage.setItem('chat_username', username);
+        }
+
+        // 生成或获取用户ID
+        let userID = localStorage.getItem('chat_user_id');
+        if (!userID) {
+            userID = generateUserID();
+            localStorage.setItem('chat_user_id', userID);
+        }
+
+        currentUser.id = userID;
+        currentUser.username = username;
+        currentUser.color = generateUserColor(userID);
+
+        updateUserDisplay();
+    }
+
+    function loadRoomInfo() {
+        const urlParams = new URLSearchParams(window.location.search);
+        roomID = urlParams.get('room');
+
+        if (!roomID || roomID.length !== 3) {
+            showErrorMessage('无效的房间号');
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 2000);
+            return;
+        }
+
+        // 尝试从URL获取房间名，否则使用默认
+        roomName = urlParams.get('name') || `房间 ${roomID}`;
+
+        document.getElementById('roomTitle').textContent = roomName;
+        document.getElementById('roomId').textContent = `#${roomID}`;
+
+        // 修改页面标题
+        document.title = `${roomName} #${roomID}`;
+    }
+
+    function generateUserID() {
+        return 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    function generateRandomName() {
+        const adjectives = ['勇敢的', '聪明的', '快乐的', '安静的', '活泼的', '神秘的', '优雅的', '热情的'];
+        const nouns = ['小猫', '小狗', '熊猫', '老虎', '狮子', '企鹅', '海豚', '蝴蝶'];
+        const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+        const noun = nouns[Math.floor(Math.random() * nouns.length)];
+        return adj + noun;
+    }
+
+    function generateUserColor(userID) {
+        const colors = [
+            '#FF6B6B', '#4ECDC4', '#FFD166', '#06D6A0',
+            '#118AB2', '#073B4C', '#EF476F', '#7209B7',
+            '#3A86FF', '#FB5607', '#8338EC', '#FF006E'
+        ];
+        let sum = 0;
+        for (let i = 0; i < userID.length; i++) {
+            sum += userID.charCodeAt(i);
+        }
+        return colors[sum % colors.length];
+    }
+
+    function updateUserDisplay() {
+        document.getElementById('usernameDisplay').textContent = currentUser.username;
+        document.getElementById('userColor').style.backgroundColor = currentUser.color;
+    }
+
+    function updateUserListDisplay(users) {
+        const userListContainer = document.getElementById('userListContainer');
+        userListContainer.innerHTML = '';
+
+        users.forEach((user) => {
+            const userTag = document.createElement('div');
+            userTag.className = 'user-tag';
+            userTag.innerHTML = `
+                <div class="user-color-small" style="background-color: ${user.color}"></div>
+                <span>${playerNumber ? `#${playerNumber} ` : ''}${user.username}</span>
+                ${playerNumber === gameState.currentTurn ? '🎮' : ''}
+            `;
+            userListContainer.appendChild(userTag);
+        });
+    }
+
+    function drawCard(hands) {
+        if (gameState.deck.length < 1) {
+            gameState.gameAction = `胡`;
+        } else {
+            const firstItem = gameState.deck.shift();
+            hands.push(firstItem);
+            gameState.gameAction = ``;
+            gameState.littleTurn = 1;
+        }
+        sendGame()
+    }
+
+    function extraCard(extra, hands, card1, card2, card3) {
+        hands.push(gameState.discard[gameState.discard.length - 1]);
+        gameState.discard.pop();
+        extra.push(card1, card2, card3);
+        removeNumOnce(hands, card1);
+        removeNumOnce(hands, card2);
+        removeNumOnce(hands, card3);
+        hands.sort((a, b) => a - b);
+        gameState.littleTurn = 1;
+        if (card1 === card2) {
+            gameState.gameAction = `碰`;
+        } else {
+            gameState.gameAction = `吃`;
+        }
+        sendGame();
+    }
+
+    function gangCard0(extra, hands, theDiscard) {
+        gameState.discard.pop();
+        extra.push(theDiscard, theDiscard, theDiscard);
+        removeNumOnce(hands, theDiscard);
+        removeNumOnce(hands, theDiscard);
+        removeNumOnce(hands, theDiscard);
+        const firstItem = gameState.deck.shift();
+        hands.push(firstItem);
+        gameState.gameAction = `杠`;
+        gameState.littleTurn = 1;
+        sendGame()
+    }
+
+    function gangCard1(hands, card) {
+        removeNumOnce(hands, card);
+        const firstItem = gameState.deck.shift();
+        hands.push(firstItem);
+        gameState.gameAction = `杠`;
+        gameState.littleTurn = 1;
+        sendGame()
+    }
+
+    function gang2Card(extra, hands, card) {
+        extra.push(card, card, card);
+        removeNumOnce(hands, card);
+        removeNumOnce(hands, card);
+        removeNumOnce(hands, card);
+        removeNumOnce(hands, card);
+        const firstItem = gameState.deck.shift();
+        hands.push(firstItem);
+        gameState.gameAction = `杠`;
+        gameState.littleTurn = 1;
+        sendGame()
+    }
+
+    function updateHandCards() {
+        if (gameState.currentTurn === playerNumber) {
+            readyBtn.innerText = '我方回合';
+        } else {
+            readyBtn.innerText = '等待对手';
+        }
+
+        const myCardsContainer = document.getElementById('myCards');
+        const opponentCards = document.getElementById('opponentCards');
+
+        myCardsContainer.innerHTML = '';
+        opponentCards.innerHTML = '';
+        // 假设 currentUserSeatIndex 是当前用户在 gameState.hands 中的索引
+        // 这可能需要根据你的游戏逻辑来确定
+        let hands = gameState.hands;
+        let extra = gameState.extra;
+        let hands1 = gameState.hands1;
+        let extra1 = gameState.extra1;
+        if (playerNumber === 1) {
+            hands = gameState.hands1;
+            extra = gameState.extra1;
+            hands1 = gameState.hands;
+            extra1 = gameState.extra;
+        }
+        extra.forEach((card) => {
+            const cardElement = document.createElement('div');
+            cardElement.className = 'hand-card2';
+            cardElement.innerHTML = `
+                <div class="hand-card-number">${mahjongMap[card] || mahjongMap[0]}</div>
+            `;
+            myCardsContainer.appendChild(cardElement);
+        });
+        hands.forEach((card) => {
+            const cardElement = document.createElement('div');
+            cardElement.className = 'hand-card';
+            cardElement.innerHTML = `
+                <div class="hand-card-number">${mahjongMap[card] || mahjongMap[0]}</div>
+            `;
+            cardElement.onclick = () => playCard(hands, card);
+            myCardsContainer.appendChild(cardElement);
+        });
+        extra1.forEach((card) => {
+            const cardElement = document.createElement('div');
+            cardElement.className = 'hand-card2';
+            cardElement.innerHTML = `
+                <div class="hand-card-number">${mahjongMap[card] || mahjongMap[0]}</div>
+            `;
+            opponentCards.appendChild(cardElement);
+        });
+        hands1.forEach((card) => {
+            const cardElement = document.createElement('div');
+            cardElement.className = 'hand-card';
+            if (gameState.gameAction !== `胡`) {
+                cardElement.innerHTML = `
+                <div class="hand-card-number">${mahjongMap[0]}</div>
+            `;
+            } else {
+                cardElement.innerHTML = `
+                <div class="hand-card-number">${mahjongMap[card]}</div>
+            `;
+            }
+            opponentCards.appendChild(cardElement);
+        });
+        discardPileContainer.innerHTML = '';
+        gameState.discard.forEach((card) => {
+            const cardElement = document.createElement('div');
+            cardElement.className = 'hand-card';
+            cardElement.innerHTML = `
+                <div class="hand-card-number">${mahjongMap[card]}</div>
+            `;
+            discardPileContainer.appendChild(cardElement);
+        });
+
+        if (playerNumber === gameState.currentTurn && gameState.gameAction !== `胡`) {
+            if (gameState.littleTurn === 0) {
+                const newArr = [...hands, gameState.discard[gameState.discard.length - 1]];
+                const theDiscard = gameState.discard[gameState.discard.length - 1];
+                if (isHu(newArr)) {
+                    gameState.gameAction = `胡`;
+                    sendGame();
+                    return;
+                }
+                let drawBtn = false;
+                if (hands.includes(theDiscard - 2) && hands.includes(theDiscard - 1)) {
+                    drawBtn = true;
+                    const cardElement = document.createElement('div');
+                    cardElement.className = 'hand-card1';
+                    cardElement.innerHTML = `
+                        <div class="hand-card-number1">吃${mahjongMap[theDiscard - 2]}${mahjongMap[theDiscard - 1]}${mahjongMap[theDiscard]}</div>
+                    `;
+                    cardElement.onclick = () => extraCard(extra, hands, theDiscard - 2, theDiscard - 1, theDiscard);
+                    discardPileContainer.appendChild(cardElement);
+                }
+                if (hands.includes(theDiscard - 1) && hands.includes(theDiscard + 1)) {
+                    drawBtn = true;
+                    const cardElement = document.createElement('div');
+                    cardElement.className = 'hand-card1';
+                    cardElement.innerHTML = `
+                        <div class="hand-card-number1">吃${mahjongMap[theDiscard - 1]}${mahjongMap[theDiscard]}${mahjongMap[theDiscard + 1]}</div>
+                    `;
+                    cardElement.onclick = () => extraCard(extra, hands, theDiscard - 1, theDiscard, theDiscard + 1);
+                    discardPileContainer.appendChild(cardElement);
+                }
+                if (hands.includes(theDiscard + 1) && hands.includes(theDiscard + 2)) {
+                    drawBtn = true;
+                    const cardElement = document.createElement('div');
+                    cardElement.className = 'hand-card1';
+                    cardElement.innerHTML = `
+                        <div class="hand-card-number1">吃${mahjongMap[theDiscard]}${mahjongMap[theDiscard + 1]}${mahjongMap[theDiscard + 2]}</div>
+                    `;
+                    cardElement.onclick = () => extraCard(extra, hands, theDiscard, theDiscard + 1, theDiscard + 2);
+                    discardPileContainer.appendChild(cardElement);
+                }
+                const count = newArr.filter(i => i === theDiscard).length;
+                if (count > 2) {
+                    drawBtn = true;
+                    const cardElement = document.createElement('div');
+                    cardElement.className = 'hand-card1';
+                    cardElement.innerHTML = `
+                        <div class="hand-card-number1">碰${mahjongMap[theDiscard]}</div>
+                    `;
+                    cardElement.onclick = () => extraCard(extra, hands, theDiscard, theDiscard, theDiscard);
+                    discardPileContainer.appendChild(cardElement);
+                }
+                if (count > 3) {
+                    drawBtn = true;
+                    const cardElement = document.createElement('div');
+                    cardElement.className = 'hand-card1';
+                    cardElement.innerHTML = `
+                        <div class="hand-card-number1">杠${mahjongMap[theDiscard]}</div>
+                    `;
+                    cardElement.onclick = () => gangCard0(extra, hands, theDiscard);
+                    discardPileContainer.appendChild(cardElement);
+                }
+                if (drawBtn) {
+                    const cardElement = document.createElement('div');
+                    cardElement.className = 'hand-card1';
+                    cardElement.innerHTML = `
+                        <div class="hand-card-number1">摸牌</div>
+                    `;
+                    cardElement.onclick = () => drawCard(hands);
+                    discardPileContainer.appendChild(cardElement);
+                } else {
+                    drawCard(hands);
+                }
+            } else {
+                const newArr = [...hands];
+                if (isHu(newArr)) {
+                    gameState.gameAction = `胡`;
+                    sendGame();
+                    return;
+                }
+                for (let i = 0; i < extra.length - 2; i += 3) {
+                    if (extra[i] === extra[i + 2]) {
+                        if (hands.includes(extra[i])) {
+                            const cardElement = document.createElement('div');
+                            cardElement.className = 'hand-card1';
+                            cardElement.innerHTML = `
+                                <div class="hand-card-number1">杠${mahjongMap[extra[i]]}</div>
+                            `;
+                            cardElement.onclick = () => gangCard1(hands, extra[i]);
+                            discardPileContainer.appendChild(cardElement);
+                        }
+                    }
+                }
+                newArr.sort((a, b) => a - b);
+                for (let i = 0; i < newArr.length - 3; i++) {
+                    if (newArr[i] === newArr[i + 3]) {
+                        const cardElement = document.createElement('div');
+                        cardElement.className = 'hand-card1';
+                        cardElement.innerHTML = `
+                            <div class="hand-card-number1">杠${mahjongMap[newArr[i]]}</div>
+                        `;
+                        cardElement.onclick = () => gang2Card(extra, hands, newArr[i]);
+                        discardPileContainer.appendChild(cardElement);
+                    }
+                }
+            }
+        }
+
+        if (gameState.gameAction !== ``) {
+            const el = document.createElement('div');
+            el.className = 'pop-text';
+            el.textContent = gameState.gameAction;
+
+            document.body.appendChild(el);
+
+            // 动画结束后移除节点
+            el.addEventListener('animationend', () => {
+                el.remove();
+            });
+        }
+    }
+
+    function playCard(hands, card) {
+        if (playerNumber !== gameState.currentTurn || gameState.littleTurn !== 1) {
+            return;
+        }
+
+        // if (playerNumber !== 0) {
+        //     removeNumOnce(gameState.hands1, card);
+        // } else {
+        removeNumOnce(hands, card);
+        // }
+        gameState.discard.push(card);
+        gameState.currentTurn = 1 - gameState.currentTurn;
+        gameState.littleTurn = 0;
+        gameState.gameAction = ``;
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: 'gameState',
+                content: JSON.stringify(gameState)
+            }));
+        }
+    }
+
+    function sendGame() {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: 'gameState',
+                content: JSON.stringify(gameState)
+            }));
+        }
+    }
+
+    function isHu(arr) {
+        arr.sort((a, b) => a - b);
+        if (isPairs(arr)) {
+            return true
+        }
+        const countObj = {};
+        for (const item of arr) {
+            // 确保item是数字，避免非数字干扰
+            const num = Number(item);
+            countObj[num] = (countObj[num] || 0) + 1;
+        }
+
+        // 步骤2：遍历所有可能的数字，尝试作为将牌（扣2次），只要有一次符合即返回true
+        // 遍历频次对象的键（转成数字数组，避免字符串问题）
+        const numKeys = Object.keys(countObj).map(key => Number(key));
+        for (const targetNum of numKeys) {
+            // 只有频次≥2时，才能作为将牌（扣2次）
+            if (countObj[targetNum] < 2) continue;
+
+            // 关键：浅拷贝原频次对象，避免修改原数据（解决引用传递问题）
+            const newCountObj = {...countObj};
+            // 扣将牌：对应数字频次减2
+            newCountObj[targetNum] -= 2;
+            // 若扣完后为0，可删除该键（可选，简化后续遍历）
+            if (newCountObj[targetNum] === 0) delete newCountObj[targetNum];
+
+            // 步骤3：对扣完将牌的频次，处理刻子（扣3的倍数）+ 顺子（扣连续3个数字）
+            // 拷贝新的频次对象用于处理，避免遍历中修改原对象导致的问题
+            const handleCountObj = {...newCountObj};
+            // 按数字升序遍历（必须排序，否则顺子处理会乱序，如先处理5再处理3会出错）
+            const sortedNums = Object.keys(handleCountObj).map(key => Number(key)).sort((a, b) => a - b);
+
+            for (const curNum of sortedNums) {
+                let curCount = handleCountObj[curNum] || 0;
+                if (curCount === 0) continue;
+
+                // 处理刻子：扣3的倍数，剩余0/1/2（取模运算最简洁）
+                curCount = curCount % 3;
+                handleCountObj[curNum] = curCount;
+                if (curCount === 0) {
+                    delete handleCountObj[curNum];
+                    continue;
+                }
+
+                // 步骤4：处理顺子：当前频次为curCount，需curNum+1、curNum+2各扣curCount
+                const next1 = curNum + 1; // 下一个连续数字
+                const next2 = curNum + 2; // 下下一个连续数字
+                // 边界判断：必须存在这两个数字，且频次≥当前频次（否则无法组成顺子）
+                if (handleCountObj[next1] >= curCount && handleCountObj[next2] >= curCount) {
+                    // 扣减连续数字的频次
+                    handleCountObj[next1] -= curCount;
+                    handleCountObj[next2] -= curCount;
+                    // 扣完后为0则删除，简化判断
+                    if (handleCountObj[next1] === 0) delete handleCountObj[next1];
+                    if (handleCountObj[next2] === 0) delete handleCountObj[next2];
+                    // 当前数字频次置0并删除
+                    delete handleCountObj[curNum];
+                } else {
+                    // 无法组成刻子/顺子，本次将牌尝试失败，跳出循环
+                    break;
+                }
+            }
+
+            // 步骤5：判断本次将牌尝试是否成功：处理后频次对象为空（所有频次扣完）
+            if (Object.keys(handleCountObj).length === 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function isPairs(arr) {
+        if (!Array.isArray(arr) || arr.length !== 14) return false;
+        const countObj = {};
+        for (const item of arr) {
+            countObj[item] = (countObj[item] || 0) + 1;
+        }
+        // 遍历对象值，判断是否全为2
+        return Object.values(countObj).every(count => (count === 2 || count === 4));
+    }
+
+    function removeNumOnce(arr, num) {
+        // 1. 找到指定数字的**第一个**匹配索引（indexOf找不到返回-1）
+        const index = arr.indexOf(num);
+        // 2. 索引有效（不是-1）时，删除该索引的1个元素
+        if (index !== -1) {
+            arr.splice(index, 1); // splice(索引, 删除个数)：原地修改数组
+        }
+        arr.sort((a, b) => a - b);
+        // 3. 返回处理后的数组（无匹配项则返回原数组）
+        return arr;
+    }
+
+    function connect() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = function () {
+            // 发送连接信息
+            ws.send(JSON.stringify({
+                type: 'connect',
+                roomID: roomID,
+                userID: currentUser.id,
+                username: currentUser.username
+            }));
+
+            document.getElementById('messageInput').disabled = false;
+            document.getElementById('sendButton').disabled = false;
+            document.getElementById('messageInput').focus();
+        };
+
+        ws.onmessage = function (event) {
+            const msg = JSON.parse(event.data);
+
+            switch (msg.type) {
+                case 'message':
+                    addChatMessage(msg);
+                    break;
+                case 'system':
+                    addGameMessage(msg.content);
+                    break;
+                case 'userlist':
+                    updateUserList(JSON.parse(msg.content));
+                    break;
+                case 'history':
+                    processHistory(JSON.parse(msg.content));
+                    break;
+                case 'error':
+                    showErrorMessage(msg.content);
+                    break;
+                case 'gameState':
+                    updateGameState(JSON.parse(msg.content));
+                    break;
+                case 'playerNumber':
+                    if (msg.playerNumber !== 1) {
+                        playerNumber = 0
+                    } else {
+                        playerNumber = 1
+                    }
+                    break;
+            }
+        };
+
+        ws.onerror = function (error) {
+            console.error('连接错误:', error);
+            addGameMessage('连接错误，正在尝试重连...');
+        };
+
+        ws.onclose = function () {
+            addGameMessage('连接已断开，正在尝试重连...');
+            setTimeout(connect, 2000);
+        };
+    }
+
+    function updateGameState(state) {
+        gameState = state;
+        if (gameState.isNew) {
+            isNewGame = true;
+            readyBtn.innerText = `点击准备`;
+            readyBtn.disabled = false;
+            gameState.isNew = false;
+        }
+        if (!isNewGame) {
+            updateHandCards();
+        }
+    }
+
+    function processHistory(historyMessages) {
+        if (!hasReceivedHistory && historyMessages.length > 0) {
+            // 显示历史消息分隔线
+            addHistoryInfo(`📜 显示最近的 ${historyMessages.length} 条聊天记录`);
+
+            // 按时间顺序显示历史消息
+            historyMessages.forEach(msg => {
+                if (msg.type === 'message') {
+                    addChatMessage(msg, true);
+                }
+            });
+
+            addHistoryInfo('✨ 以上是历史消息，开始聊天吧！');
+            hasReceivedHistory = true;
+        }
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('messageInput');
+        const content = input.value.trim();
+
+        if (content && ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: 'message',
+                content: content
+            }));
+
+            input.value = '';
+            input.focus();
+        }
+    }
+
+    function showRenameModal() {
+        const modal = document.getElementById('renameModal');
+        const input = document.getElementById('renameInput');
+
+        input.value = currentUser.username;
+        modal.style.display = 'flex';
+        input.focus();
+    }
+
+    function hideRenameModal() {
+        document.getElementById('renameModal').style.display = 'none';
+    }
+
+    function renameUser() {
+        const newName = document.getElementById('renameInput').value.trim();
+
+        if (!newName) {
+            alert('请输入玩家名称');
+            return;
+        }
+
+        if (newName.length > 20) {
+            alert('玩家名称不能超过20个字符');
+            return;
+        }
+
+        if (newName === currentUser.username) {
+            hideRenameModal();
+            return;
+        }
+
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: 'rename',
+                content: newName
+            }));
+
+            localStorage.setItem('chat_username', newName);
+            currentUser.username = newName;
+            currentUser.color = generateUserColor(currentUser.id);
+            updateUserDisplay();
+
+            hideRenameModal();
+        }
+    }
+
+    function addChatMessage(msg, isHistory = false) {
+        const messages = document.getElementById('messages');
+        const messageDiv = document.createElement('div');
+
+        const isOwnMessage = msg.userID === currentUser.id;
+        messageDiv.className = isOwnMessage ? 'message chat own' : 'message chat other';
+
+        if (!isOwnMessage) {
+            messageDiv.style.borderLeftColor = msg.color;
+        }
+
+        if (isHistory) {
+            messageDiv.style.opacity = '0.7';
+        }
+
+        const time = new Date(msg.time).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        messageDiv.innerHTML = `
+            <div class="message-header">
+                <span class="message-username" style="color: ${isOwnMessage ? 'inherit' : msg.color}">
+                    ${msg.username}${msg.playerNumber ? ` (#${msg.playerNumber})` : ''}
+                </span>
+                <span class="message-time">${time}</span>
+            </div>
+            <div class="message-content">${msg.content}</div>
+        `;
+
+        messages.appendChild(messageDiv);
+
+        // 滚动到底部
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    function addGameMessage(text) {
+        const messages = document.getElementById('messages');
+        const messageDiv = document.createElement('div');
+
+        messageDiv.className = 'message system-game';
+        messageDiv.innerHTML = `<div class="message-content">🎮 ${text}</div>`;
+
+        messages.appendChild(messageDiv);
+
+        // 滚动到底部
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    function addHistoryInfo(text) {
+        const messages = document.getElementById('messages');
+        const messageDiv = document.createElement('div');
+
+        messageDiv.className = 'message history-info';
+        messageDiv.innerHTML = `<div class="message-content">${text}</div>`;
+
+        messages.appendChild(messageDiv);
+    }
+
+    function showErrorMessage(text) {
+        const messages = document.getElementById('messages');
+        const messageDiv = document.createElement('div');
+
+        messageDiv.className = 'message error';
+        messageDiv.innerHTML = `<div class="message-content">${text}</div>`;
+
+        messages.appendChild(messageDiv);
+
+        // 3秒后跳转回主页
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 3000);
+    }
+
+    function updateUserList(users) {
+        userList = users;
+        const onlineCountElement = document.getElementById('onlineCount');
+        onlineCountElement.textContent = users.length;
+
+        updateUserListDisplay(users);
+    }
+</script>
+</body>
+</html>
