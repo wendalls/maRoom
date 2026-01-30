@@ -1,8 +1,0 @@
-services:
-  go-app:
-    build: .
-    ports:
-      - "443:443"
-    container_name: socks5
-    restart: unless-stopped
-
